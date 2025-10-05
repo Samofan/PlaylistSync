@@ -1,0 +1,42 @@
+﻿using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using PlaylistSync.Discogs;
+using PlaylistSync.Discogs.Implementations;
+using PlaylistSync.Models.Settings;
+using PlaylistSync.Synchronization;
+using PlaylistSync.Synchronization.Implementations;
+using Serilog;
+using Microsoft.Extensions.Options;
+
+var builder = Host.CreateApplicationBuilder(args);
+
+builder.Configuration.AddJsonFile("appsettings.json", optional: false, reloadOnChange: true);
+builder.Configuration.AddUserSecrets<ApplicationSettings>();
+builder.Services.Configure<ApplicationSettings>(builder.Configuration.GetSection(nameof(ApplicationSettings)));
+
+var logger = new LoggerConfiguration()
+            .ReadFrom.Configuration(builder.Configuration)
+            .CreateLogger();
+
+builder.Services.AddLogging();
+builder.Services.AddSerilog(logger);
+
+builder.Services.AddHttpClient<IDiscogsConnector, DiscogsConnector>((serviceProvider, client) =>
+{
+    client.BaseAddress = new Uri("https://api.discogs.com/");
+
+    var settings = serviceProvider.GetRequiredService<IOptions<ApplicationSettings>>().Value.DiscogsSettings;
+
+    client.DefaultRequestHeaders.UserAgent.ParseAdd("PlaylistSync/0.1");
+    client.DefaultRequestHeaders.Add("Authorization", $"Discogs token={settings.Token}");
+});
+
+builder.Services.AddKeyedScoped<ISyncTask, WantlistLoaderTask>("WantlistLoader");
+
+builder.Services.AddScoped<SyncService>();
+
+var app = builder.Build();
+
+var syncService = app.Services.GetRequiredService<SyncService>();
+await syncService.StartAsync(CancellationToken.None);
