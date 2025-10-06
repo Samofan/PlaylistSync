@@ -11,6 +11,8 @@ using Microsoft.Extensions.Options;
 using PlaylistSync.Streaming.Spotify;
 using PlaylistSync.Auth;
 using PlaylistSync.Streaming;
+using PlaylistSync.Auth.Implementations;
+using PlaylistSync.Common;
 
 var builder = Host.CreateApplicationBuilder(args);
 
@@ -40,8 +42,15 @@ builder.Services.AddHttpClient<IDiscogsConnector, DiscogsConnector>((serviceProv
     client.DefaultRequestHeaders.UserAgent.ParseAdd("PlaylistSync/0.1");
     client.DefaultRequestHeaders.Add("Authorization", $"Discogs token={settings.Token}");
 });
+
+builder.Services.AddTransient<OAuthDelegatingHandler>();
+
 builder.Services.AddHttpClient<IOAuthClient, SpotifyOAuthClient>();
-builder.Services.AddHttpClient<IStreamingServiceConnector, SpotifyConnector>();
+builder.Services.AddHttpClient<SpotifyApiClient>(client =>
+{
+    client.BaseAddress = new Uri("https://api.spotify.com/v1/");
+}).AddHttpMessageHandler<OAuthDelegatingHandler>();
+builder.Services.AddScoped<IStreamingServiceConnector, SpotifyConnector>();
 
 builder.Services.AddKeyedScoped<ISyncTask, WantlistLoaderTask>("WantlistLoader");
 
