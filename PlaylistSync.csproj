@@ -24,4 +24,9 @@
     </None>
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Streaming/" />
+    <Folder Include="Streaming/Spotify/" />
+  </ItemGroup>
+
 </Project>

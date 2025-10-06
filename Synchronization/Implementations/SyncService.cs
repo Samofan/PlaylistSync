@@ -13,16 +13,16 @@ internal sealed class SyncService(ILogger<SyncService> logger,
 
         var context = new SyncContext();
 
-            await wantlistLoader.ExecuteAsync(context, cancellationToken);
+        await wantlistLoader.ExecuteAsync(context, cancellationToken);
 
-            foreach (var album in context.Wantlist
-                .OrderBy(a => a.Artists.FirstOrDefault()?.Name)
-                .ThenBy(a => a.Year))
-            {
-                logger.LogDebug("Album: {Title} ({Year}) by {Artists}",
-                    album.Title,
-                    album.Year,
-                    string.Join(", ", album.Artists.Select(a => a.Name)));
-            }
+        foreach (var album in context.Wantlist
+            .OrderBy(a => a.Artists.FirstOrDefault()?.Name)
+            .ThenBy(a => a.Year))
+        {
+            logger.LogDebug("Album: {Title} ({Year}) by {Artists}",
+                album.Title,
+                album.Year,
+                string.Join(", ", album.Artists.Select(a => a.Name)));
+        }
     }
 }
