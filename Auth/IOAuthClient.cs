@@ -1,4 +1,5 @@
 using System;
+using PlaylistSync.Auth.Models;
 
 namespace PlaylistSync.Auth;
 

@@ -1,4 +1,4 @@
-namespace PlaylistSync.Auth;
+namespace PlaylistSync.Auth.Models;
 
 public class AuthorizationCodeTokenResponse : IRefreshableToken
   {

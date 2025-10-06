@@ -8,6 +8,10 @@ using PlaylistSync.Synchronization;
 using PlaylistSync.Synchronization.Implementations;
 using Serilog;
 using Microsoft.Extensions.Options;
+using PlaylistSync.Auth.Implementations;
+using PlaylistSync.Streaming.Spotify;
+using PlaylistSync.Auth;
+using PlaylistSync.Streaming;
 
 var builder = Host.CreateApplicationBuilder(args);
 
@@ -21,6 +25,12 @@ var logger = new LoggerConfiguration()
 
 builder.Services.AddLogging();
 builder.Services.AddSerilog(logger);
+builder.Services.AddMemoryCache();
+
+builder.Services.ConfigureHttpClientDefaults(configuration =>
+{
+    configuration.AddStandardResilienceHandler();
+});
 
 builder.Services.AddHttpClient<IDiscogsConnector, DiscogsConnector>((serviceProvider, client) =>
 {
@@ -31,6 +41,8 @@ builder.Services.AddHttpClient<IDiscogsConnector, DiscogsConnector>((serviceProv
     client.DefaultRequestHeaders.UserAgent.ParseAdd("PlaylistSync/0.1");
     client.DefaultRequestHeaders.Add("Authorization", $"Discogs token={settings.Token}");
 });
+builder.Services.AddHttpClient<IOAuthClient, SpotifyOAuthClient>();
+builder.Services.AddHttpClient<IStreamingServiceConnector, SpotifyConnector>();
 
 builder.Services.AddKeyedScoped<ISyncTask, WantlistLoaderTask>("WantlistLoader");
 
