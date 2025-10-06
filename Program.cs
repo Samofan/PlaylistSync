@@ -8,7 +8,6 @@ using PlaylistSync.Synchronization;
 using PlaylistSync.Synchronization.Implementations;
 using Serilog;
 using Microsoft.Extensions.Options;
-using PlaylistSync.Auth.Implementations;
 using PlaylistSync.Streaming.Spotify;
 using PlaylistSync.Auth;
 using PlaylistSync.Streaming;

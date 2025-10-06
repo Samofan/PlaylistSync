@@ -1,9 +1,10 @@
 using System.Net.Http.Json;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
+using PlaylistSync.Auth.Implementations;
 using PlaylistSync.Auth.Models;
 
-namespace PlaylistSync.Auth.Implementations;
+namespace PlaylistSync.Streaming.Spotify;
 
 internal class SpotifyOAuthClient(ILogger<OAuthClientBase> logger, HttpClient httpClient, IMemoryCache cache) : OAuthClientBase
 {
@@ -29,22 +30,27 @@ internal class SpotifyOAuthClient(ILogger<OAuthClientBase> logger, HttpClient ht
         request.Content = new FormUrlEncodedContent(new Dictionary<string, string>
         {
             { "grant_type", "client_credentials" }
-        });
-
-        var response = await httpClient.SendAsync(request, cancellationToken);
-        response.EnsureSuccessStatusCode();
+        });        
 
         try
         {
+            var response = await httpClient.SendAsync(request, cancellationToken);
+            response.EnsureSuccessStatusCode();
+
             var token = await response.Content.ReadFromJsonAsync<ClientCredentialsTokenResponse>(cancellationToken) ?? throw new Exception("Failed to deserialize token response.");
 
             cache.Set(CacheKey, token, TimeSpan.FromSeconds(token.ExpiresIn) - TimeSpan.FromSeconds(30));
 
             return token;
         }
-        catch (Exception)
+        catch (HttpRequestException ex)
         {
-            logger.LogError("Failed to deserialize token response: {Response}", await response.Content.ReadAsStringAsync(cancellationToken));
+            logger.LogError(ex, "HTTP request for client credentials token failed");
+            throw;
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Failed to deserialize token response");
             throw;
         }
     }
