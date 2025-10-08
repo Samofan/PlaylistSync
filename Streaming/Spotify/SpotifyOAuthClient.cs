@@ -1,3 +1,4 @@
+using System.Data;
 using System.Net.Http.Json;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
@@ -12,13 +13,12 @@ internal class SpotifyOAuthClient(ILogger<OAuthClientBase> logger, HttpClient ht
 
     public override async Task<ClientCredentialsTokenResponse> RequestTokenAsync(ClientCredentialsRequest clientCredentialsRequest, CancellationToken cancellationToken = default)
     {
-        if (cache.TryGetValue<ClientCredentialsTokenResponse>(CacheKey, out var cachedToken))
+        cache.TryGetValue<ClientCredentialsTokenResponse>(CacheKey, out var cachedToken);
+
+        if (cachedToken is not null && cachedToken.CreatedAt.AddSeconds(cachedToken.ExpiresIn) > DateTimeOffset.UtcNow.AddMinutes(1))
         {
-            if (cachedToken?.CreatedAt.AddSeconds(cachedToken.ExpiresIn) > DateTimeOffset.UtcNow.AddMinutes(1))
-            {
-                logger.LogDebug("Using cached client credentials token");
-                return cachedToken;
-            }
+            logger.LogDebug("Using cached client credentials token");
+            return cachedToken;
         }
 
         logger.LogInformation("Requesting new client credentials token");
@@ -30,29 +30,16 @@ internal class SpotifyOAuthClient(ILogger<OAuthClientBase> logger, HttpClient ht
         request.Content = new FormUrlEncodedContent(new Dictionary<string, string>
         {
             { "grant_type", "client_credentials" }
-        });        
+        });
 
-        try
-        {
-            var response = await httpClient.SendAsync(request, cancellationToken);
-            response.EnsureSuccessStatusCode();
+        var response = await httpClient.SendAsync(request, cancellationToken);
+        response.EnsureSuccessStatusCode();
 
-            var token = await response.Content.ReadFromJsonAsync<ClientCredentialsTokenResponse>(cancellationToken) ?? throw new Exception("Failed to deserialize token response.");
+        var token = await response.Content.ReadFromJsonAsync<ClientCredentialsTokenResponse>(cancellationToken) ?? throw new NoNullAllowedException("Failed to deserialize token response.");
 
-            cache.Set(CacheKey, token, TimeSpan.FromSeconds(token.ExpiresIn) - TimeSpan.FromSeconds(30));
+        cache.Set(CacheKey, token, TimeSpan.FromSeconds(token.ExpiresIn) - TimeSpan.FromSeconds(30));
 
-            return token;
-        }
-        catch (HttpRequestException ex)
-        {
-            logger.LogError(ex, "HTTP request for client credentials token failed");
-            throw;
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "Failed to deserialize token response");
-            throw;
-        }
+        return token;
     }
 
     public override async Task<AuthorizationCodeTokenResponse> RequestTokenAsync(AuthorizationCodeRequest authorizationCodeRequest, CancellationToken cancellationToken = default)
@@ -67,18 +54,10 @@ internal class SpotifyOAuthClient(ILogger<OAuthClientBase> logger, HttpClient ht
             { "code", authorizationCodeRequest.Code },
             { "redirect_uri", authorizationCodeRequest.RedirectUri.ToString() }
         });
-    
+
         var response = await httpClient.SendAsync(request, cancellationToken);
         response.EnsureSuccessStatusCode();
 
-        try
-        {
-            return await response.Content.ReadFromJsonAsync<AuthorizationCodeTokenResponse>(cancellationToken) ?? throw new Exception("Failed to deserialize token response.");
-        }
-        catch (Exception)
-        {
-            logger.LogError("Failed to deserialize token response: {Response}", await response.Content.ReadAsStringAsync(cancellationToken));
-            throw;
-        }
+        return await response.Content.ReadFromJsonAsync<AuthorizationCodeTokenResponse>(cancellationToken) ?? throw new NoNullAllowedException("Failed to deserialize token response.");
     }
 }

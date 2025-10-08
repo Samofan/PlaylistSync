@@ -16,10 +16,10 @@ internal sealed class SpotifyApiClient(ILogger<SpotifyApiClient> logger, HttpCli
             response.EnsureSuccessStatusCode();
             return await response.Content.ReadFromJsonAsync<T>(cancellationToken);
         }
-        catch (Exception ex)
+        catch (HttpRequestException ex)
         {
             logger.LogError(ex, "Spotify API request failed for {Url}", relativeUrl);
-            throw;
+            return default;
         }
     }
 }

@@ -6,7 +6,7 @@ using PlaylistSync.Streaming.Spotify.Models;
 
 namespace PlaylistSync.Streaming.Spotify;
 
-internal sealed class SpotifyConnector(ILogger<SpotifyConnector> logger, IOptions<ApplicationSettings> options, SpotifyApiClient spotifyApiClient) : IStreamingServiceConnector
+internal sealed class SpotifyConnector(ILogger<SpotifyConnector> logger, SpotifyApiClient spotifyApiClient) : IStreamingServiceConnector
 {
     public async Task<Album?> SearchAlbumAsync(AlbumSearchRequest albumSearchRequest, CancellationToken cancellationToken)
     {
@@ -21,13 +21,13 @@ internal sealed class SpotifyConnector(ILogger<SpotifyConnector> logger, IOption
         catch (Exception ex)
         {
             logger.LogError(ex, "An error occurred while searching for album '{AlbumName}'.", albumSearchRequest.Title);
-            throw;
+            return default;
         }
 
-        if (albumSearchResponse is null || albumSearchResponse.Albums.Items.Any() is false)
+        if (albumSearchResponse is null || !albumSearchResponse.Albums.Items.Any())
         {
             logger.LogWarning("No albums found when searching for album '{AlbumName}'.", albumSearchRequest.Title);
-            return null;
+            return default;
         }
 
         var foundAlbum = albumSearchResponse.Albums.Items.First();

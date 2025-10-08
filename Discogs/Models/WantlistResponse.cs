@@ -30,17 +30,6 @@ internal sealed class PaginationInfo
 
     [JsonPropertyName("items")]
     public required int Items { get; set; }
-
-    [JsonPropertyName("urls")]
-    public required PaginationUrls Urls { get; set; }
-}
-
-/// <summary>
-/// Contains URLs for pagination.
-/// </summary>
-internal sealed class PaginationUrls
-{
-    // This class is empty in the sample but defined for type safety.
 }
 
 /// <summary>
