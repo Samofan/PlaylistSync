@@ -33,17 +33,14 @@ builder.Services.ConfigureHttpClientDefaults(configuration =>
     configuration.AddStandardResilienceHandler();
 });
 
+builder.Services.AddTransient<OAuthDelegatingHandler>();
+builder.Services.AddTransient<TokenAuthorizationDelegatingHandler>();
+
 builder.Services.AddHttpClient<IDiscogsConnector, DiscogsConnector>((serviceProvider, client) =>
 {
     client.BaseAddress = new Uri("https://api.discogs.com/");
-
-    var settings = serviceProvider.GetRequiredService<IOptions<ApplicationSettings>>().Value.DiscogsSettings;
-
     client.DefaultRequestHeaders.UserAgent.ParseAdd("PlaylistSync/0.1");
-    client.DefaultRequestHeaders.Add("Authorization", $"Discogs token={settings.Token}");
-});
-
-builder.Services.AddTransient<OAuthDelegatingHandler>();
+}).AddHttpMessageHandler<TokenAuthorizationDelegatingHandler>();
 
 builder.Services.AddHttpClient<IOAuthClient, SpotifyOAuthClient>();
 builder.Services.AddHttpClient<SpotifyApiClient>(client =>
