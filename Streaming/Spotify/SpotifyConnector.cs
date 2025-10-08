@@ -10,27 +10,60 @@ internal sealed class SpotifyConnector(ILogger<SpotifyConnector> logger, IOption
 {
     public async Task<Album?> SearchAlbumAsync(AlbumSearchRequest albumSearchRequest, CancellationToken cancellationToken)
     {
-        logger.LogDebug("Searching for album '{AlbumName}'", albumSearchRequest.Title);
-
         var query = $"search?q=album:{Uri.EscapeDataString(albumSearchRequest.Title)}%20artist:{Uri.EscapeDataString(albumSearchRequest.Artist)}&type=album&limit=1";
 
-        
+        AlbumSearchResponse? albumSearchResponse = null;
+
         try
         {
-            var albumSearchResponse = await spotifyApiClient.GetAsync<AlbumSearchResponse>(query, cancellationToken);
-
-            // TODO: Validate search result
-            var firstItem = albumSearchResponse?.Albums.Items.FirstOrDefault();
-            var title = firstItem?.Name ?? string.Empty;
-            var artists = firstItem?.Artists.Select(a => new SpotifyArtist(a.Name)).ToList<Artist>() ?? [];
-            var year = 14; // You may want to parse the year from firstItem?.ReleaseDate
-
-            return new SpotifyAlbum(title, year, artists);
+            albumSearchResponse = await spotifyApiClient.GetAsync<AlbumSearchResponse>(query, cancellationToken);
         }
         catch (Exception ex)
         {
             logger.LogError(ex, "An error occurred while searching for album '{AlbumName}'.", albumSearchRequest.Title);
             throw;
         }
+
+        if (albumSearchResponse is null || albumSearchResponse.Albums.Items.Any() is false)
+        {
+            logger.LogWarning("No albums found when searching for album '{AlbumName}'.", albumSearchRequest.Title);
+            return null;
+        }
+
+        var foundAlbum = albumSearchResponse.Albums.Items.First();
+        var releaseYear = 0;
+        
+        try
+        {
+            releaseYear = ExtractYear(foundAlbum.ReleaseDate);
+        }
+        catch (FormatException ex)
+        {
+            logger.LogWarning(ex, "Failed to parse release date '{ReleaseDate}' for album '{AlbumName}'. Setting year to 0.", foundAlbum.ReleaseDate, albumSearchRequest.Title);
+        }
+        catch (ArgumentException ex)
+        {
+            logger.LogWarning(ex, "Release date is empty for album '{AlbumName}'. Setting year to 0.", albumSearchRequest.Title);
+        }
+
+        return new SpotifyAlbum(
+            foundAlbum.Id,
+            foundAlbum.Name,
+            releaseYear,
+            foundAlbum.Artists.Select(a => new SpotifyArtist(a.Name)).ToList<Artist>()
+        );
+    }
+
+    private static int ExtractYear(string releaseDate)
+    {
+        if (string.IsNullOrWhiteSpace(releaseDate))
+            throw new ArgumentException("Date string must not be empty.", nameof(releaseDate));
+
+        var parts = releaseDate.Split('-');
+
+        if (parts.Length == 0 || !int.TryParse(parts[0], out int year))
+            throw new FormatException($"Invalid date format: '{releaseDate}'");
+
+        return year;
     }
 }

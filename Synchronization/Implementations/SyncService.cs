@@ -7,7 +7,8 @@ using PlaylistSync.Synchronization.Models;
 namespace PlaylistSync.Synchronization.Implementations;
 
 internal sealed class SyncService(ILogger<SyncService> logger,
-    [FromKeyedServices("WantlistLoader")] ISyncTask wantlistLoader,
+    [FromKeyedServices(nameof(WantlistLoaderTask))] ISyncTask wantlistLoader,
+    [FromKeyedServices(nameof(StreamingServiceAlbumFinderTask))] ISyncTask albumFinder,
     IStreamingServiceConnector streamingServiceConnector)
 {
     public async Task StartAsync(CancellationToken cancellationToken)
@@ -28,22 +29,18 @@ internal sealed class SyncService(ILogger<SyncService> logger,
                 string.Join(", ", album.Artists.Select(a => a.Name)));
         }
 
-        var albumToSearch = context.Wantlist.First();
-        var foundAlbum = await streamingServiceConnector.SearchAlbumAsync(new AlbumSearchRequest
-        {
-            Title = albumToSearch.Title,
-            Artist = albumToSearch.Artists.FirstOrDefault()?.Name ?? string.Empty
-        }, cancellationToken);
+        await albumFinder.ExecuteAsync(context, cancellationToken);
 
-        var pinkFloyd = await streamingServiceConnector.SearchAlbumAsync(new AlbumSearchRequest
+        foreach (var album in context.SearchResults
+            .Where(a => a is not null)
+            .OrderBy(a => a!.Artists.FirstOrDefault()?.Name)
+            .ThenBy(a => a!.Year))
         {
-            Title = "The Dark Side of the Moon",
-            Artist = "Pink Floyd"
-        }, cancellationToken);
-
-        logger.LogInformation("Found album: {Title} ({Year}) by {Artists}",
-            foundAlbum?.Title,
-            foundAlbum?.Year,
-            string.Join(", ", foundAlbum?.Artists.Select(a => a.Name) ?? []));
+            logger.LogInformation("Found Album: {Title} ({Year}) by {Artists} with id {Id}",
+                album!.Title,
+                album.Year,
+                string.Join(", ", album.Artists.Select(a => a.Name)),
+                album is SpotifyAlbum spotifyAlbum ? spotifyAlbum.Id : "N/A");
+        }
     }
 }

@@ -49,7 +49,8 @@ builder.Services.AddHttpClient<SpotifyApiClient>(client =>
 }).AddHttpMessageHandler<OAuthDelegatingHandler>();
 builder.Services.AddScoped<IStreamingServiceConnector, SpotifyConnector>();
 
-builder.Services.AddKeyedScoped<ISyncTask, WantlistLoaderTask>("WantlistLoader");
+builder.Services.AddKeyedScoped<ISyncTask, WantlistLoaderTask>(nameof(WantlistLoaderTask));
+builder.Services.AddKeyedScoped<ISyncTask, StreamingServiceAlbumFinderTask>(nameof(StreamingServiceAlbumFinderTask));
 
 builder.Services.AddScoped<SyncService>();
 
