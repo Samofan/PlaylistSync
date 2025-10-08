@@ -17,10 +17,10 @@ internal sealed class DiscogsConnector(ILogger<DiscogsConnector> logger, HttpCli
 
         var response = await discogsClient.GetFromJsonAsync<WantlistResponse>($"/users/{username}/wants", cancellationToken);
 
-        var wantlist = response?.Wants?.Select(want => new Album(
+        var wantlist = response?.Wants?.Select(want => new DiscogsAlbum(
             want.BasicInformation.Title,
             want.BasicInformation.Year,
-            want.BasicInformation.Artists.Select(artist => new Artist(artist.Name))
+            want.BasicInformation.Artists.Select(artist => new DiscogsArtist(artist.Name))
         )) ?? [];
 
         logger.LogInformation("Wantlist for user {Username} contains {Count} items.", username, wantlist.Count());

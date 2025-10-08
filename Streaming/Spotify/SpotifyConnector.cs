@@ -1,8 +1,5 @@
-using System.Net.Http.Json;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using PlaylistSync.Auth;
-using PlaylistSync.Auth.Models;
 using PlaylistSync.Models;
 using PlaylistSync.Models.Settings;
 using PlaylistSync.Streaming.Spotify.Models;
@@ -23,12 +20,12 @@ internal sealed class SpotifyConnector(ILogger<SpotifyConnector> logger, IOption
             var albumSearchResponse = await spotifyApiClient.GetAsync<AlbumSearchResponse>(query, cancellationToken);
 
             // TODO: Validate search result
-            var firstItem = albumSearchResponse.Albums.Items.FirstOrDefault();
+            var firstItem = albumSearchResponse?.Albums.Items.FirstOrDefault();
             var title = firstItem?.Name ?? string.Empty;
-            var artists = firstItem?.Artists.Select(a => new Artist(a.Name)).ToList() ?? new List<Artist>();
+            var artists = firstItem?.Artists.Select(a => new SpotifyArtist(a.Name)).ToList<Artist>() ?? [];
             var year = 14; // You may want to parse the year from firstItem?.ReleaseDate
 
-            return new Album(title, year, artists);
+            return new SpotifyAlbum(title, year, artists);
         }
         catch (Exception ex)
         {

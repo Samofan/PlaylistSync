@@ -1,3 +1,3 @@
 namespace PlaylistSync.Models;
 
-internal record Artist(string Name);
+internal abstract record Artist(string Name);

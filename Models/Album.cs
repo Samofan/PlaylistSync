@@ -1,3 +1,3 @@
 namespace PlaylistSync.Models;
 
-internal record Album(string Title, int Year, IEnumerable<Artist> Artists);
+internal abstract record Album(string Title, int Year, IEnumerable<Artist> Artists);
