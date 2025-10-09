@@ -2,7 +2,7 @@ using PlaylistSync.Auth.Models;
 
 namespace PlaylistSync.Auth.Implementations;
 
-public abstract class OAuthClientBase : IOAuthClient
+internal abstract class OAuthClientBase : IOAuthClient
 {
     public abstract Task<ClientCredentialsTokenResponse> RequestTokenAsync(ClientCredentialsRequest clientCredentialsRequest, CancellationToken cancellationToken = default);
     public abstract Task<AuthorizationCodeTokenResponse> RequestTokenAsync(AuthorizationCodeRequest authorizationCodeRequest, CancellationToken cancellationToken = default);

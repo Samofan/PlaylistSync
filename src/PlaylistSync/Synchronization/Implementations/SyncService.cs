@@ -8,8 +8,7 @@ namespace PlaylistSync.Synchronization.Implementations;
 
 internal sealed class SyncService(ILogger<SyncService> logger,
     [FromKeyedServices(nameof(WantlistLoaderTask))] ISyncTask wantlistLoader,
-    [FromKeyedServices(nameof(StreamingServiceAlbumFinderTask))] ISyncTask albumFinder,
-    IStreamingServiceConnector streamingServiceConnector)
+    [FromKeyedServices(nameof(StreamingServiceAlbumFinderTask))] ISyncTask albumFinder)
 {
     public async Task StartAsync(CancellationToken cancellationToken)
     {

@@ -7,7 +7,7 @@ using PlaylistSync.Auth.Models;
 
 namespace PlaylistSync.Streaming.Spotify;
 
-internal class SpotifyOAuthClient(ILogger<OAuthClientBase> logger, HttpClient httpClient, IMemoryCache cache) : OAuthClientBase
+internal class SpotifyOAuthClient(ILogger<SpotifyOAuthClient> logger, HttpClient httpClient, IMemoryCache cache) : OAuthClientBase
 {
     private const string CacheKey = "Spotify:ClientCredentialsToken";
 
