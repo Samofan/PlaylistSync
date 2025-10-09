@@ -41,23 +41,4 @@ internal class SpotifyOAuthClient(ILogger<SpotifyOAuthClient> logger, HttpClient
 
         return token;
     }
-
-    public override async Task<AuthorizationCodeTokenResponse> RequestTokenAsync(AuthorizationCodeRequest authorizationCodeRequest, CancellationToken cancellationToken = default)
-    {
-        var request = new HttpRequestMessage(HttpMethod.Post, "https://accounts.spotify.com/api/token");
-
-        request.Headers.Authorization = new("Basic", EncodeClientCredentials(authorizationCodeRequest.ClientId, authorizationCodeRequest.ClientSecret));
-
-        request.Content = new FormUrlEncodedContent(new Dictionary<string, string>
-        {
-            { "grant_type", "authorization_code" },
-            { "code", authorizationCodeRequest.Code },
-            { "redirect_uri", authorizationCodeRequest.RedirectUri.ToString() }
-        });
-
-        var response = await httpClient.SendAsync(request, cancellationToken);
-        response.EnsureSuccessStatusCode();
-
-        return await response.Content.ReadFromJsonAsync<AuthorizationCodeTokenResponse>(cancellationToken) ?? throw new NoNullAllowedException("Failed to deserialize token response.");
-    }
 }

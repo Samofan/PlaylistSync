@@ -5,7 +5,6 @@ namespace PlaylistSync.Auth.Implementations;
 internal abstract class OAuthClientBase : IOAuthClient
 {
     public abstract Task<ClientCredentialsTokenResponse> RequestTokenAsync(ClientCredentialsRequest clientCredentialsRequest, CancellationToken cancellationToken = default);
-    public abstract Task<AuthorizationCodeTokenResponse> RequestTokenAsync(AuthorizationCodeRequest authorizationCodeRequest, CancellationToken cancellationToken = default);
 
     protected static string EncodeClientCredentials(string clientId, string clientSecret)
     {

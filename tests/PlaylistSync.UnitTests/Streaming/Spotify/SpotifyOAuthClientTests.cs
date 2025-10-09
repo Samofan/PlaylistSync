@@ -3,10 +3,8 @@ using System.Net.Http.Json;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using Moq;
-using Newtonsoft.Json;
 using PlaylistSync.Auth.Models;
 using PlaylistSync.Streaming.Spotify;
-using Rhino.Mocks.Constraints;
 using Shouldly;
 
 namespace PlaylistSync.UnitTests.Streaming.Spotify;
@@ -78,7 +76,7 @@ public class SpotifyOAuthClientTests
             Content = JsonContent.Create(requestedToken),
             StatusCode = HttpStatusCode.OK
         };
-        
+
         _httpClientMock
             .Setup(client => client.SendAsync(It.IsAny<HttpRequestMessage>(), cancellationToken))
             .ReturnsAsync(httpResponse);
@@ -96,6 +94,78 @@ public class SpotifyOAuthClientTests
         result.ShouldNotBe(cachedToken);
         result.ExpiresIn.ShouldBe(requestedToken.ExpiresIn);
         _httpClientMock.Invocations.Count.ShouldBe(1);
-        _cache.Get<ClientCredentialsTokenResponse>(CacheKey)!.ExpiresIn.ShouldBe(requestedToken.ExpiresIn);
+    }
+
+    [Fact]
+    public async Task GIVEN_InvalidCachedToken_WHEN_RequestingToken_THEN_StoresNewTokenInCache()
+    {
+        // ARRANGE
+        var cachedToken = new ClientCredentialsTokenResponse
+        {
+            AccessToken = string.Empty,
+            TokenType = string.Empty,
+            // Expires in 30 seconds.
+            ExpiresIn = 30
+        };
+
+        var requestedToken = new ClientCredentialsTokenResponse
+        {
+            AccessToken = string.Empty,
+            TokenType = string.Empty,
+            ExpiresIn = 3600
+        };
+
+        var cancellationToken = CancellationToken.None;
+
+        var httpResponse = new HttpResponseMessage
+        {
+            Content = JsonContent.Create(requestedToken),
+            StatusCode = HttpStatusCode.OK
+        };
+
+        _httpClientMock
+            .Setup(client => client.SendAsync(It.IsAny<HttpRequestMessage>(), cancellationToken))
+            .ReturnsAsync(httpResponse);
+
+        _cache.Set(CacheKey, cachedToken);
+
+        var tokenRequest = new ClientCredentialsRequest(string.Empty, string.Empty);
+
+        var sut = new SpotifyOAuthClient(_loggerMock.Object, _httpClientMock.Object, _cache);
+
+        // ACT
+        var result = await sut.RequestTokenAsync(tokenRequest, cancellationToken);
+
+        // ASSERT
+        _httpClientMock.Invocations.Count.ShouldBe(1);
+        _cache.TryGetValue<ClientCredentialsTokenResponse>(CacheKey, out var cachedResult).ShouldBe(true);
+        cachedResult!.ExpiresIn.ShouldBe(requestedToken.ExpiresIn);
+    }
+
+    [Fact]
+    public async Task GIVEN_HttpResponse_WITH_UnsuccessfulStatusCode_WHEN_RequestingToken_THEN_ThrowsHttpRequestException()
+    {
+        // ARRANGE
+        var httpResponse = new HttpResponseMessage
+        {
+            Content = null!,
+            StatusCode = HttpStatusCode.BadRequest
+        };
+
+        var cancellationToken = CancellationToken.None;
+
+        _httpClientMock
+            .Setup(client => client.SendAsync(It.IsAny<HttpRequestMessage>(), cancellationToken))
+            .ReturnsAsync(httpResponse);
+
+        var tokenRequest = new ClientCredentialsRequest(string.Empty, string.Empty);
+
+        var sut = new SpotifyOAuthClient(_loggerMock.Object, _httpClientMock.Object, _cache);
+
+        // ACT
+        Task act = sut.RequestTokenAsync(tokenRequest, cancellationToken);
+
+        // ASSERT
+        _ = await Assert.ThrowsAsync<HttpRequestException>(() => act);
     }
 }
